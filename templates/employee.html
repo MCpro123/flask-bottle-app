@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <h2>Welcome Employee #{{ employee_id }}</h2>
+  <div id="map" style="height: 400px;"></div>
+  <input id="count" type="number" placeholder="Bottle count" min="0">
+  <button id="save">Save Location</button>
+  <br><a href="/logout">Logout</a>
+
+  <script>
+    (async () => {
+  try {
+    const pos = await getCurrentPositionAsync({ enableHighAccuracy: true });
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+
+    const map = L.map('map').setView([lat, lon], 18);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+    // 🔹 Load existing markers for this employee
+    const res = await fetch('/get_employee_records');
+    const records = await res.json();
+
+    records.forEach(r => {
+      L.marker([r.latitude, r.longitude])
+        .addTo(map)
+        .bindPopup(`🧴 ${r.bottles} bottles`);
+    });
+
+    // 🔹 Add current location marker
+    const marker = L.marker([lat, lon]).addTo(map).bindPopup("📍 You are here").openPopup();
+
+    document.getElementById('save').onclick = async () => {
+      const count = document.getElementById('count').value || 0;
+      await fetch('/update_location', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ lat, lon, count })
+      });
+      alert("Location saved!");
+      location.reload(); // reload to update markers
+    };
+  } catch (err) {
+    alert("Could not get location: " + err);
+  }
+})();
+
+
+  </script>
+</body>
+</html>
