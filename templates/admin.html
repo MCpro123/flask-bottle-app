@@ -5,64 +5,207 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-</head>
-<style>
-      
-    /* Responsive layout */
+
+  <style>
     body {
       margin: 0;
       font-family: 'Poppins', sans-serif;
       background-color: #f6f9fc;
       color: #333;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
     }
 
     header {
       text-align: center;
       background: #007bff;
       color: white;
-      padding: 10px;
-      font-size: 1.2rem;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 15px;
+      font-size: 1.5rem;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      padding: 20px;
     }
 
     #map {
-      flex: 1; /* makes the map take the remaining height */
-      width: 100%;
-      height: 100%;
+      height: 450px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    /* Make sure map resizes properly */
-    html, body, #map {
-      height: 100%;
+    section {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    @media (max-width: 768px) {
-      header {
-        font-size: 1rem;
-        padding: 8px;
-      }
+    h3 {
+      color: #007bff;
+      margin-bottom: 10px;
     }
-</style>
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
 <body>
-  <h2>Admin Dashboard</h2>
-  <div id="map" style="height: 600px;"></div>
-  <a href="/logout">Logout</a>
+  <header>Admin Dashboard</header>
+
+  <div class="container">
+    <!-- 🌍 Map Section -->
+    <section>
+      <h3>Employee Bottle Locations</h3>
+      <div id="map"></div>
+    </section>
+
+    <!-- ➕ Add Employee -->
+    <section>
+      <h3>Add New Employee</h3>
+      <form id="addEmployeeForm">
+        <input type="text" name="name" placeholder="Employee Name" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Add</button>
+      </form>
+      <p id="addEmployeeMsg"></p>
+    </section>
+
+    <!-- ❌ Delete Employee -->
+    <section>
+      <h3>Delete Employee</h3>
+      <input type="number" id="searchId" placeholder="Enter Employee ID">
+      <button id="searchBtn">Search</button>
+      <div id="searchResult"></div>
+    </section>
+
+    <a href="/logout">Logout</a>
+  </div>
 
   <script>
-    const data = {{ data|tojson }};
-    const map = L.map('map').setView([0, 0], 2);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+(async () => {
+  // Get current admin location
+  let lat = 20, lon = 0;
+  try {
+    const pos = await new Promise((res, rej) => {
+      navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true });
+    });
+    lat = pos.coords.latitude;
+    lon = pos.coords.longitude;
+  } catch {
+    console.warn("Could not get admin location, using default.");
+  }
 
-    data.forEach(item => {
-      if (item.latitude && item.longitude) {
-        L.marker([item.latitude, item.longitude])
-          .addTo(map)
-          .bindPopup(`Employee ID: ${item.employee_id}<br>Bottles: ${item.bottle_count}`);
+  // Initialize map
+  const map = L.map('map').setView([lat, lon], 14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+  const customerIcon = L.icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+  popupAnchor: [0, -28]
+});
+
+
+
+  const res = await fetch('/get_all_markers');
+  const markers = await res.json();
+
+  markers.forEach(m => {
+    if (m.latitude && m.longitude) {
+      L.marker([m.latitude, m.longitude], { icon: customerIcon})
+        .addTo(map)
+        .bindPopup(`
+          <b>🧍‍♂️ Employee:</b> ${m.employee_name} (ID: ${m.employee_id})<br>
+          <b>📦 Customer:</b> ${m.customer_name} (ID: ${m.customer_id})<br>
+          <b>📞 Phone:</b> ${m.customer_phone}<br>
+          <b>🧴 Bottles:</b> ${m.bottles}
+        `);
+    }
+  });
+})();
+
+// ➕ Add employee
+    document.getElementById('addEmployeeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const res = await fetch('/add_employee', { method: 'POST', body: formData });
+      const result = await res.json();
+      const msg = document.getElementById('addEmployeeMsg');
+      if (result.status === 'success') {
+        msg.innerText = `✅ Employee added! ID: ${result.employee_id}`;
+        e.target.reset();
+      } else msg.innerText = `❌ Error: ${result.message}`;
+    });
+
+    // 🔍 Search Employee
+    document.getElementById('searchBtn').addEventListener('click', async () => {
+      const id = document.getElementById('searchId').value.trim();
+      const resultDiv = document.getElementById('searchResult');
+      resultDiv.innerHTML = '';
+
+      if (!id) {
+        resultDiv.innerHTML = '<p style="color:red;">Enter employee ID</p>';
+        return;
+      }
+
+      const res = await fetch(`/get_employee/${id}`);
+      const data = await res.json();
+
+      if (data.status === 'not_found') {
+        resultDiv.innerHTML = '<p style="color:red;">Employee not found</p>';
+      } else {
+        resultDiv.innerHTML = 
+          `<p><b>Employee ID:</b> ${data.id}<br>
+          <b>Name:</b> ${data.name}</p>
+          <button id="deleteBtn">Delete Employee</button>`
+        ;
+
+        // 🗑️ Delete employee
+        document.getElementById('deleteBtn').addEventListener('click', async () => {
+          if (!confirm(`Are you sure you want to delete ${data.name}?`)) return;
+
+          const delRes = await fetch(`/delete_employee/${id}`, { method: 'DELETE' });
+          const delData = await delRes.json();
+
+          if (delData.status === 'success') {
+            resultDiv.innerHTML = `<p style="color:green;">✅ Employee deleted successfully</p>`;
+          } else {
+            resultDiv.innerHTML = `<p style="color:red;">❌ ${delData.message}</p>`;
+          }
+        });
       }
     });
-  </script>
+
+</script>
 </body>
 </html>

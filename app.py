@@ -1,12 +1,68 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from flask_mysqldb import MySQL
-import MySQLdb.cursors
-import re
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import psycopg2
+import psycopg2.extras
+from datetime import datetime
+import config  # contains POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_PORT, SECRET_KEY
 
 app = Flask(__name__)
-app.config.from_pyfile('config.py')
+app.secret_key = config.SECRET_KEY
 
-mysql = MySQL(app)
+# PostgreSQL connection
+def get_db_connection():
+    conn = psycopg2.connect(
+        host=config.POSTGRES_HOST,
+        database=config.POSTGRES_DB,
+        user=config.POSTGRES_USER,
+        password=config.POSTGRES_PASSWORD,
+        port=config.POSTGRES_PORT
+    )
+    return conn
+
+# Initialize tables (run once at startup)
+def init_db():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS employees (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            password VARCHAR(100) NOT NULL,
+            is_admin BOOLEAN DEFAULT FALSE
+        )
+    ''')
+
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS customers (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            bottles INTEGER DEFAULT 0
+        )
+    ''')
+
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS bottle_records (
+            id SERIAL PRIMARY KEY,
+            employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+            customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+            latitude DOUBLE PRECISION,
+            longitude DOUBLE PRECISION,
+            bottles INTEGER,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    ''')
+    
+    # create default admin
+    cur.execute("SELECT * FROM employees WHERE name='Admin'")
+    if not cur.fetchone():
+        cur.execute("INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s)",
+                    ("Admin", "admin123", True))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# ---------------- Routes ----------------
 
 # Home page → login
 @app.route('/', methods=['GET', 'POST'])
@@ -15,12 +71,17 @@ def login():
     if request.method == 'POST' and 'employee_id' in request.form and 'password' in request.form:
         employee_id = request.form['employee_id']
         password = request.form['password']
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM employees WHERE employee_id = %s AND password = %s', (employee_id, password))
-        account = cursor.fetchone()
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute('SELECT * FROM employees WHERE id=%s AND password=%s', (employee_id, password))
+        account = cur.fetchone()
+        cur.close()
+        conn.close()
+
         if account:
             session['loggedin'] = True
-            session['employee_id'] = account['employee_id']
+            session['employee_id'] = account['id']
             session['is_admin'] = account['is_admin']
             if account['is_admin']:
                 return redirect(url_for('admin_dashboard'))
@@ -32,48 +93,108 @@ def login():
 # Employee dashboard
 @app.route('/employee')
 def employee_page():
-    if 'loggedin' in session and not session['is_admin']:
+    if session.get('loggedin') and not session.get('is_admin'):
         return render_template('employee.html', employee_id=session['employee_id'])
     return redirect(url_for('login'))
 
-# Admin dashboard with map
+# Admin dashboard with map + employee management
 @app.route('/admin')
 def admin_dashboard():
     if session.get('loggedin') and session.get('is_admin'):
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM bottles')
-        data = cursor.fetchall()
-        cursor.close()
-        return render_template('admin.html', data=data)
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # Fetch bottle records
+        cur.execute('SELECT * FROM bottle_records')
+        data = cur.fetchall()
+
+        # Fetch employee list
+        cur.execute('SELECT * FROM employees ORDER BY id ASC')
+        employees = cur.fetchall()
+
+        cur.close()
+        conn.close()
+        return render_template('admin.html', data=data, employees=employees)
     return redirect(url_for('login'))
 
-# Save employee’s current location
+
+@app.route('/get_customers')
+def get_customers():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('SELECT id, name, phone, bottles, latitude, longitude FROM customers ORDER BY name ASC')
+    customers = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([dict(row) for row in customers])
+
+
+@app.route('/get_customer_bottles/<int:customer_id>')
+def get_customer_bottles(customer_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT name, phone, bottles FROM customers WHERE id=%s', (customer_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not row:
+        return jsonify({'status': 'not_found'})
+    return jsonify({'status': 'found', 'name': row[0], 'phone': row[1], 'bottles': row[2]})
+
+
 @app.route('/update_location', methods=['POST'])
 def update_location():
-    if 'loggedin' in session:
-        data = request.get_json()
-        lat = data.get('lat')
-        lon = data.get('lon')
-        count = data.get('count', 0)
-        emp_id = session['employee_id']
+    if 'loggedin' not in session:
+        return jsonify({"status": "unauthorized"}), 403
 
-        cursor = mysql.connection.cursor()
-        cursor.execute(
-            "REPLACE INTO bottles (employee_id, latitude, longitude, bottle_count) VALUES (%s, %s, %s, %s)",
-            (emp_id, lat, lon, count)
-        )
-        mysql.connection.commit()
-        return jsonify({'status': 'success'})
-    return jsonify({'status': 'unauthorized'}), 403
+    data = request.get_json()
+    emp_id = session['employee_id']
+    lat = data.get('lat')
+    lon = data.get('lon')
+    cust_type = data.get('type')
+    count = int(data.get('count', 0))
 
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    if cust_type == "new":
+        name = data.get('name')
+        phone = data.get('phone')
+        if not name or not phone:
+            return jsonify({'status': 'error', 'message': 'Name and phone required'})
+        # Save new customer with location
+        cur.execute('''
+            INSERT INTO customers (name, phone, bottles, latitude, longitude)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        ''', (name, phone, count, lat, lon))
+        customer_id = cur.fetchone()[0]
+    else:
+        customer_id = data.get('customer_id')
+        # Only update bottle count, not location
+        cur.execute('UPDATE customers SET bottles=%s WHERE id=%s', (count, customer_id))
+
+    # Record new delivery (location always recorded for employee tracking)
+    cur.execute('''
+        INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at)
+        VALUES (%s, %s, %s, %s, %s, NOW())
+    ''', (emp_id, customer_id, lat, lon, count))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"status": "success"})
+
+# Get employee’s saved records
 @app.route('/get_employee_records')
 def get_employee_records():
-    if "user_id" not in session:
+    if not session.get("loggedin"):
         return jsonify([])
 
-    employee_id = session["user_id"]
+    employee_id = session["employee_id"]
 
-    cur = mysql.connection.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cur.execute("""
         SELECT latitude, longitude, bottles 
         FROM bottle_records 
@@ -81,16 +202,142 @@ def get_employee_records():
     """, (employee_id,))
     rows = cur.fetchall()
     cur.close()
+    conn.close()
 
     return jsonify(rows)
 
+# Add new employee (Admin only)
+@app.route('/add_employee', methods=['POST'])
+def add_employee():
+    if not session.get('loggedin') or not session.get('is_admin'):
+        return jsonify({'status': 'unauthorized'}), 403
+
+    name = request.form.get('name')
+    password = request.form.get('password')
+
+    if not name or not password:
+        return jsonify({'status': 'error', 'message': 'Name and password required'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s) RETURNING id",
+            (name, password, False)
+        )
+        new_id = cur.fetchone()[0]
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        cur.close()
+        conn.close()
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+    cur.close()
+    conn.close()
+    return jsonify({'status': 'success', 'employee_id': new_id})
+
+# Search employee by ID
+@app.route('/get_employee/<int:id>')
+def get_employee(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('SELECT id, name FROM employees WHERE id = %s', (id,))
+    emp = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not emp:
+        return jsonify({'status': 'not_found'})
+    return jsonify({'status': 'found', 'id': emp[0], 'name': emp[1]})
+
+
+# Delete employee by ID (AJAX)
+@app.route('/delete_employee/<int:id>', methods=['DELETE'])
+def delete_employee(id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute('SELECT id FROM employees WHERE id = %s', (id,))
+    emp = cur.fetchone()
+    if not emp:
+        cur.close()
+        conn.close()
+        return jsonify({'status': 'error', 'message': 'Employee not found'})
+
+    cur.execute('DELETE FROM employees WHERE id = %s', (id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'status': 'success', 'message': 'Employee deleted'})
+
+@app.route('/get_all_markers')
+def get_all_markers():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute("""
+        SELECT 
+            b.id AS record_id,
+            c.latitude,
+            c.longitude,
+            c.bottles,
+            e.id AS employee_id,
+            e.name AS employee_name,
+            c.id AS customer_id,
+            c.name AS customer_name,
+            c.phone AS customer_phone
+        FROM bottle_records b
+        JOIN employees e ON b.employee_id = e.id
+        JOIN customers c ON b.customer_id = c.id
+        WHERE b.latitude IS NOT NULL AND b.longitude IS NOT NULL
+        ORDER BY b.created_at DESC
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([dict(r) for r in rows])
+
+@app.route('/get_employee_markers')
+def get_employee_markers():
+    emp_id = session.get("employee_id")
+    if not emp_id:
+        return jsonify({"status": "unauthorized", "message": "Please log in again"}), 401
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        # 🔹 Join bottle_records with customers to get full info
+        cur.execute("""
+            SELECT 
+                c.id AS customer_id,
+                c.name AS customer_name,
+                c.phone AS customer_phone,
+                c.bottles AS customer_bottles,
+                c.latitude,
+                c.longitude
+            FROM bottle_records b
+            JOIN customers c ON b.customer_id = c.id
+            WHERE b.employee_id = %s
+        """, (emp_id,))
+        
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        data = [dict(row) for row in rows]
+        return jsonify({"status": "success", "data": data})
+    except Exception as e:
+        print("DB error:", e)
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
 
+# ---------------- Main ----------------
 if __name__ == '__main__':
+    init_db()  # initialize Postgres tables
     app.run(debug=True)
-
-
-

@@ -8,50 +8,137 @@
 </head>
 <body>
   <h2>Welcome Employee #{{ employee_id }}</h2>
+
   <div id="map" style="height: 400px;"></div>
-  <input id="count" type="number" placeholder="Bottle count" min="0">
-  <button id="save">Save Location</button>
+
+  <!-- 🔹 New customer form -->
+  <div id="newCustomerForm">
+    <h3>New Customer</h3>
+    <input id="customerName" type="text" placeholder="Customer Name" required>
+    <input id="customerPhone" type="text" placeholder="Phone Number" required>
+    <input id="bottleCount" type="number" placeholder="Bottle count" min="0" required>
+    <button id="saveNew">Save New Customer</button>
+  </div>
+
+  
+  <!-- 🔹 Existing customer form (appears when blue marker clicked) -->
+  <div id="existingCustomerForm" style="display:none;">
+    <h3>Existing Customer</h3>
+    <p><b>Name:</b> <span id="exName"></span></p>
+    <p><b>Phone:</b> <span id="exPhone"></span></p>
+    <p><b>Previous Bottles:</b> <span id="exPrev"></span></p>
+    <input id="exNewCount" type="number" placeholder="New bottle count" min="0">
+    <button id="saveUpdate">Update Bottles</button>
+  </div>
+
   <br><a href="/logout">Logout</a>
 
-  <script>
-    (async () => {
+<script>
+(async () => {
   try {
-    const pos = await getCurrentPositionAsync({ enableHighAccuracy: true });
+    // Get current location
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+    });
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
 
-    const map = L.map('map').setView([lat, lon], 18);
+    // Setup map
+    const map = L.map('map').setView([lat, lon], 17);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-    // 🔹 Load existing markers for this employee
-    const res = await fetch('/get_employee_records');
-    const records = await res.json();
-
-    records.forEach(r => {
-      L.marker([r.latitude, r.longitude])
-        .addTo(map)
-        .bindPopup(`🧴 ${r.bottles} bottles`);
+    // Red "You are here" marker
+    const currentIcon = L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [0, -41]
     });
 
-    // 🔹 Add current location marker
-    const marker = L.marker([lat, lon]).addTo(map).bindPopup("📍 You are here").openPopup();
+    L.marker([lat, lon], { icon: currentIcon })
+      .addTo(map)
+      .bindPopup("📍 You are here")
+      .on('click', () => {
+        document.getElementById('newCustomerForm').style.display = 'block';
+        document.getElementById('existingCustomerForm').style.display = 'none';
+      })
+      .openPopup();
 
-    document.getElementById('save').onclick = async () => {
-      const count = document.getElementById('count').value || 0;
-      await fetch('/update_location', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ lat, lon, count })
+    // Load assigned customers
+    const res = await fetch('/get_employee_markers');
+    const data = await res.json();
+
+    if (data.status === "success") {
+      const customers = data.data;
+
+      const customerIcon = L.divIcon({
+        className: 'custom-customer-marker',
+        html: '<span style="font-size: 30px;">📍</span>',
+        iconSize: [10,30],
+        iconAnchor: [10, 30]
       });
-      alert("Location saved!");
-      location.reload(); // reload to update markers
+
+      customers.forEach(c => {
+        if (c.latitude && c.longitude) {
+          L.marker([c.latitude, c.longitude], { icon: customerIcon })
+            .addTo(map)
+            .bindPopup(`🧴 <b>${c.customer_name}</b><br>💧 ${c.customer_bottles} bottles<br>📞 ${c.customer_phone}`)
+            .on('click', () => {
+              document.getElementById('newCustomerForm').style.display = 'none';
+              document.getElementById('existingCustomerForm').style.display = 'block';
+              document.getElementById('exName').textContent = c.customer_name;
+              document.getElementById('exPhone').textContent = c.customer_phone;
+              document.getElementById('exPrev').textContent = c.customer_bottles;
+              document.getElementById('saveUpdate').setAttribute('data-id', c.customer_id);
+            });
+        }
+      });
+    }
+
+    // Save new customer
+    document.getElementById('saveNew').onclick = async () => {
+      const name = document.getElementById('customerName').value;
+      const phone = document.getElementById('customerPhone').value;
+      const count = document.getElementById('bottleCount').value;
+
+      if (!name || !phone || !count) return alert('Please fill all fields.');
+
+      const res = await fetch('/update_location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'new', lat, lon, name, phone, count })
+      });
+
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert('✅ New customer saved!');
+        location.reload();
+      } else alert('❌ Error: ' + data.message);
     };
+
+    // Update existing customer
+    document.getElementById('saveUpdate').onclick = async (e) => {
+      const id = e.target.getAttribute('data-id');
+      const count = document.getElementById('exNewCount').value;
+      if (!count) return alert('Enter new bottle count.');
+
+      const res = await fetch('/update_location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'existing', customer_id: id, count }) // remove lat, lon to avoid overwriting
+      });
+
+      const data = await res.json();
+      if (data.status === 'success') {
+        alert('✅ Bottle count updated!');
+        location.reload();
+      } else alert('❌ Error: ' + data.message);
+    };
+
   } catch (err) {
     alert("Could not get location: " + err);
   }
 })();
-
-
-  </script>
+</script>
 </body>
 </html>
