@@ -7,15 +7,20 @@ import config  # contains POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PA
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
-# PostgreSQL connection
+# # PostgreSQL connection
+# def get_db_connection():
+#     conn = psycopg2.connect(
+#         host=config.POSTGRES_HOST,
+#         database=config.POSTGRES_DB,
+#         user=config.POSTGRES_USER,
+#         password=config.POSTGRES_PASSWORD,
+#         port=config.POSTGRES_PORT
+#     )
+#     return conn
+import os
+
 def get_db_connection():
-    conn = psycopg2.connect(
-        host=config.POSTGRES_HOST,
-        database=config.POSTGRES_DB,
-        user=config.POSTGRES_USER,
-        password=config.POSTGRES_PASSWORD,
-        port=config.POSTGRES_PORT
-    )
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     return conn
 
 # Initialize tables (run once at startup)
