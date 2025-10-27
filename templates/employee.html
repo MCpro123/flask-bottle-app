@@ -151,7 +151,7 @@
     });
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
-
+    const radius = 5;
     // Setup map
     const map = L.map('map').setView([lat, lon], 17);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);

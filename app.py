@@ -314,6 +314,8 @@ def get_employee_markers():
     
     emp_lat = request.args.get("lat", type=float)
     emp_lon = request.args.get("lon", type=float)
+    radius_km = request.args.get("radius", default=5.0, type=float)  # adjustable radius
+
 
     if emp_lat is None or emp_lon is None:
         return jsonify({"status": "error", "message": "Missing latitude or longitude"}), 400
@@ -322,8 +324,10 @@ def get_employee_markers():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # 🔹 Use the Haversine formula to find customers within 5 km radius
-        cur.execute("""
+        # Subquery computes distance_km; outer query filters by radius_km
+        sql = """
+        SELECT *
+        FROM (
             SELECT 
                 id AS customer_id,
                 name AS customer_name,
@@ -340,13 +344,16 @@ def get_employee_markers():
                 ) AS distance_km
             FROM customers
             WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-            HAVING distance_km <= 5
-            ORDER BY distance_km ASC;
-        """, (emp_lat, emp_lon, emp_lat))
+        ) AS sub
+        WHERE sub.distance_km <= %s
+        ORDER BY sub.distance_km ASC;
+        """
 
+        cur.execute(sql, (emp_lat, emp_lon, emp_lat, radius_km))
         rows = cur.fetchall()
         cur.close()
         conn.close()
+
 
         data = [dict(row) for row in rows]
         return jsonify({"status": "success", "data": data})
