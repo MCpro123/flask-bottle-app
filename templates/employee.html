@@ -6,6 +6,33 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
+
+<body>
+  <h2>Welcome Employee #{{ employee_id }}</h2>
+
+  <div id="map" style="height: 400px;"></div>
+
+  <!-- 🔹 New customer form -->
+  <div id="newCustomerForm">
+    <h3>New Customer</h3>
+    <input id="customerName" type="text" placeholder="Customer Name" required>
+    <input id="customerPhone" type="text" placeholder="Phone Number" required>
+    <input id="bottleCount" type="number" placeholder="Bottle count" min="0" required>
+    <button id="saveNew">Save New Customer</button>
+  </div>
+
+  
+  <!-- 🔹 Existing customer form (appears when blue marker clicked) -->
+  <div id="existingCustomerForm" style="display:none;">
+    <h3>Existing Customer</h3>
+    <p><b>Name:</b> <span id="exName"></span></p>
+    <p><b>Phone:</b> <span id="exPhone"></span></p>
+    <p><b>Previous Bottles:</b> <span id="exPrev"></span></p>
+    <input id="exNewCount" type="number" placeholder="New bottle count" min="0">
+    <button id="saveUpdate">Update Bottles</button>
+  </div>
+
+  <br><a href="/logout">Logout</a>
 <style>
 /* Make sure the whole page scales nicely */
 body {
@@ -100,33 +127,6 @@ a:hover {
   }
 }
 </style>
-<body>
-  <h2>Welcome Employee #{{ employee_id }}</h2>
-
-  <div id="map" style="height: 400px;"></div>
-
-  <!-- 🔹 New customer form -->
-  <div id="newCustomerForm">
-    <h3>New Customer</h3>
-    <input id="customerName" type="text" placeholder="Customer Name" required>
-    <input id="customerPhone" type="text" placeholder="Phone Number" required>
-    <input id="bottleCount" type="number" placeholder="Bottle count" min="0" required>
-    <button id="saveNew">Save New Customer</button>
-  </div>
-
-  
-  <!-- 🔹 Existing customer form (appears when blue marker clicked) -->
-  <div id="existingCustomerForm" style="display:none;">
-    <h3>Existing Customer</h3>
-    <p><b>Name:</b> <span id="exName"></span></p>
-    <p><b>Phone:</b> <span id="exPhone"></span></p>
-    <p><b>Previous Bottles:</b> <span id="exPrev"></span></p>
-    <input id="exNewCount" type="number" placeholder="New bottle count" min="0">
-    <button id="saveUpdate">Update Bottles</button>
-  </div>
-
-  <br><a href="/logout">Logout</a>
-
 <script>
 (async () => {
   try {
