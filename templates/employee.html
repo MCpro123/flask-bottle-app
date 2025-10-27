@@ -6,6 +6,100 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
+<style>
+/* Make sure the whole page scales nicely */
+body {
+  font-family: Arial, sans-serif;
+  margin: 10px;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: #f5f6fa;
+}
+
+/* Responsive map container */
+#map {
+  width: 100%; /* full device width */
+  height: 60vh; /* 3/5 of the viewport height */
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+}
+
+/* Form containers */
+#newCustomerForm, #existingCustomerForm {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  max-width: 500px;
+  margin: 10px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Input fields */
+input[type="text"], input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+/* Buttons */
+button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Center heading and logout link */
+h2, h3 {
+  text-align: center;
+}
+
+a {
+  display: block;
+  text-align: center;
+  color: #007bff;
+  text-decoration: none;
+  margin-top: 20px;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Mobile responsiveness tweaks */
+@media (max-width: 600px) {
+  body {
+    margin: 5px;
+  }
+
+  #map {
+    height: 55vh; /* slightly shorter on small devices */
+  }
+
+  #newCustomerForm, #existingCustomerForm {
+    width: 95%;
+    padding: 10px;
+  }
+
+  input, button {
+    font-size: 14px;
+  }
+}
+</style>
 <body>
   <h2>Welcome Employee #{{ employee_id }}</h2>
 
