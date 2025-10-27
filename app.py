@@ -33,7 +33,8 @@ def init_db():
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
             password VARCHAR(100) NOT NULL,
-            is_admin BOOLEAN DEFAULT FALSE
+            is_admin BOOLEAN DEFAULT FALSE,
+            is_active BOOLEAN DEFAULT TRUE
         )
     ''')
 
@@ -41,7 +42,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS customers (
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
-            bottles INTEGER DEFAULT 0
+            bottles INTEGER DEFAULT 0,
+            latitude DOUBLE PRECISION,
+            longitude DOUBLE PRECISION
         )
     ''')
 
@@ -79,7 +82,7 @@ def login():
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute('SELECT * FROM employees WHERE id=%s AND password=%s', (employee_id, password))
+        cur.execute('SELECT * FROM employees WHERE id=%s AND password=%s AND is_active=TRUE', (employee_id, password))
         account = cur.fetchone()
         cur.close()
         conn.close()
@@ -176,6 +179,9 @@ def update_location():
         customer_id = cur.fetchone()[0]
     else:
         customer_id = data.get('customer_id')
+        cur.execute('SELECT latitude, longitude FROM customers WHERE id = %s', (customer_id,))
+        row = cur.fetchone()
+        lat, lon = row
         # Only update bottle count, not location
         cur.execute('UPDATE customers SET bottles=%s WHERE id=%s', (count, customer_id))
 
@@ -270,7 +276,7 @@ def delete_employee(id):
         conn.close()
         return jsonify({'status': 'error', 'message': 'Employee not found'})
 
-    cur.execute('DELETE FROM employees WHERE id = %s', (id,))
+    cur.execute('UPDATE employees SET is_active = FALSE WHERE id = %s', (id,))
     conn.commit()
     cur.close()
     conn.close()
@@ -302,30 +308,42 @@ def get_all_markers():
     conn.close()
     return jsonify([dict(r) for r in rows])
 
+
 @app.route('/get_employee_markers')
 def get_employee_markers():
-    emp_id = session.get("employee_id")
-    if not emp_id:
-        return jsonify({"status": "unauthorized", "message": "Please log in again"}), 401
+    
+    emp_lat = request.args.get("lat", type=float)
+    emp_lon = request.args.get("lon", type=float)
+
+    if emp_lat is None or emp_lon is None:
+        return jsonify({"status": "error", "message": "Missing latitude or longitude"}), 400
 
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-        # 🔹 Join bottle_records with customers to get full info
+        # 🔹 Use the Haversine formula to find customers within 5 km radius
         cur.execute("""
             SELECT 
-                c.id AS customer_id,
-                c.name AS customer_name,
-                c.phone AS customer_phone,
-                c.bottles AS customer_bottles,
-                c.latitude,
-                c.longitude
-            FROM bottle_records b
-            JOIN customers c ON b.customer_id = c.id
-            WHERE b.employee_id = %s
-        """, (emp_id,))
-        
+                id AS customer_id,
+                name AS customer_name,
+                phone AS customer_phone,
+                bottles AS customer_bottles,
+                latitude,
+                longitude,
+                (
+                    6371 * acos(
+                        cos(radians(%s)) * cos(radians(latitude)) *
+                        cos(radians(longitude) - radians(%s)) +
+                        sin(radians(%s)) * sin(radians(latitude))
+                    )
+                ) AS distance_km
+            FROM customers
+            WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+            HAVING distance_km <= 5
+            ORDER BY distance_km ASC;
+        """, (emp_lat, emp_lon, emp_lat))
+
         rows = cur.fetchall()
         cur.close()
         conn.close()
@@ -335,6 +353,34 @@ def get_employee_markers():
     except Exception as e:
         print("DB error:", e)
         return jsonify({"status": "error", "message": str(e)}), 500
+    
+@app.route('/export_bottle_records')
+def export_bottle_records():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT 
+            b.id AS record_id,
+            b.created_at,
+            e.name AS employee_name,
+            c.name AS customer_name,
+            c.phone AS customer_phone,
+            b.bottles,
+            b.latitude,
+            b.longitude
+        FROM bottle_records b
+        JOIN customers c ON b.customer_id = c.id
+        JOIN employees e ON b.employee_id = e.id
+        ORDER BY b.created_at DESC;
+    """)
+    rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
+    cur.close()
+    conn.close()
+    
+    data = [dict(zip(columns, row)) for row in rows]
+    return jsonify(data)
+
 
 # Logout
 @app.route('/logout')

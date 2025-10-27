@@ -154,7 +154,7 @@
 
     // Setup map
     const map = L.map('map').setView([lat, lon], 17);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);
 
     // Red "You are here" marker
     const currentIcon = L.icon({
@@ -174,7 +174,7 @@
       .openPopup();
 
     // Load assigned customers
-    const res = await fetch('/get_employee_markers');
+    const res = await fetch(`/get_employee_markers?lat=${lat}&lon=${lon}`)
     const data = await res.json();
 
     if (data.status === "success") {
