@@ -106,7 +106,7 @@
       <button id="searchBtn">Search</button>
       <div id="searchResult"></div>
     </section>
-
+    <button id="exportBtn">Export Bottle Records</button>
     <a href="/logout">Logout</a>
   </div>
 
@@ -189,7 +189,8 @@
           <b>Name:</b> ${data.name}</p>
           <button id="deleteBtn">Delete Employee</button>`
         ;
-
+        }
+      });
         // 🗑️ Delete employee
         document.getElementById('deleteBtn').addEventListener('click', async () => {
           if (!confirm(`Are you sure you want to delete ${data.name}?`)) return;
@@ -203,8 +204,19 @@
             resultDiv.innerHTML = `<p style="color:red;">❌ ${delData.message}</p>`;
           }
         });
-      }
-    });
+
+        document.getElementById("exportBtn").addEventListener("click", async () => {
+          try {
+            const res = await fetch("/export_bottle_records");
+            if (!res.ok) throw new Error("Export failed");
+            
+            
+          } catch (err) {
+            alert("❌ Failed to export data: " + err.message);
+          }
+        });
+      
+    
 
 </script>
 </body>

@@ -388,6 +388,32 @@ def export_bottle_records():
     data = [dict(zip(columns, row)) for row in rows]
     return jsonify(data)
 
+@app.route('/export_bottle_records')
+def export_bottle_records():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT 
+            b.id AS record_id,
+            b.created_at,
+            e.name AS employee_name,
+            c.name AS customer_name,
+            c.phone AS customer_phone,
+            b.bottles,
+            b.latitude,
+            b.longitude
+        FROM bottle_records b
+        JOIN customers c ON b.customer_id = c.id
+        JOIN employees e ON b.employee_id = e.id
+        ORDER BY b.created_at DESC;
+    """)
+    rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
+    cur.close()
+    conn.close()
+    
+    data = [dict(zip(columns, row)) for row in rows]
+    return jsonify(data)
 
 # Logout
 @app.route('/logout')
