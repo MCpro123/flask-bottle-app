@@ -111,7 +111,7 @@
       <h3>Data Insights</h3>
       <button onclick="window.location.href='/insights'">Generate Insights</button>
     </section>
-    <button id="exportBtn">Export Bottle Records</button>
+    
     <a href="/logout">Logout</a>
   </div>
 
@@ -131,14 +131,15 @@
 
   // Initialize map
   const map = L.map('map').setView([lat, lon], 14);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);
 
-  const customerIcon = L.icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-  popupAnchor: [0, -28]
-});
+  
+  const customerIcon = L.divIcon({
+        className: 'custom-customer-marker',
+        html: '<span style="font-size: 30px;">📍</span>',
+        iconSize: [10,30],
+        iconAnchor: [10, 30]
+  });
 
 
 
@@ -194,8 +195,6 @@
           <b>Name:</b> ${data.name}</p>
           <button id="deleteBtn">Delete Employee</button>`
         ;
-        }
-      });
         // 🗑️ Delete employee
         document.getElementById('deleteBtn').addEventListener('click', async () => {
           if (!confirm(`Are you sure you want to delete ${data.name}?`)) return;
@@ -209,6 +208,9 @@
             resultDiv.innerHTML = `<p style="color:red;">❌ ${delData.message}</p>`;
           }
         });
+       }
+    });
+        
 
         
       

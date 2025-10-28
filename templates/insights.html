@@ -37,6 +37,15 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
+    input[type="number"]{
+      position: absolute;
+      right: 20px;
+      top: 60px;
+      padding: 8px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
     button {
       margin-top: 20px;
       background: #007bff;
@@ -55,10 +64,12 @@
   <header>📊 Bottle Records Insights</header>
   
   <input type="date" id="datePicker">
-  
+  <input type="number" id="priceInput" placeholder="Enter bottle price" min="0">
   <div id="chartContainer">
     <canvas id="bottleChart"></canvas>
   </div>
+
+   <div id="revenueOutput">💰 Total Revenue: -</div>
 
   <button onclick="window.location.href='/admin'">⬅ Back to Dashboard</button>
 
@@ -91,6 +102,13 @@
           }
         }
       });
+       updateRevenue();
+    }
+    function updateRevenue() {
+      const price = parseFloat(document.getElementById('priceInput').value || 0);
+      const revenue = totalBottles * price;
+      document.getElementById('revenueOutput').textContent =
+        `💰 Total Revenue: ${isNaN(revenue) ? '-' : revenue.toLocaleString()} ₭`;
     }
 
     // Load today's data by default
@@ -102,6 +120,8 @@
     document.getElementById('datePicker').addEventListener('change', (e) => {
       loadHistogram(e.target.value);
     });
+
+    document.getElementById('priceInput').addEventListener('input', updateRevenue);
   </script>
 </body>
 </html>
