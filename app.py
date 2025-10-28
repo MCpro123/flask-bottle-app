@@ -3,6 +3,7 @@ import psycopg2
 import psycopg2.extras
 from datetime import datetime
 import config  # contains POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_PORT, SECRET_KEY
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -389,6 +390,47 @@ def export_bottle_records():
     
     data = [dict(zip(columns, row)) for row in rows]
     return jsonify(data)
+
+@app.route('/insights')
+def insights_page():
+    if not session.get('loggedin') or not session.get('is_admin'):
+        return redirect(url_for('login'))
+    return render_template('insights.html')
+
+
+@app.route('/get_hourly_bottles')
+def get_hourly_bottles():
+    if not session.get('loggedin') or not session.get('is_admin'):
+        return jsonify([])
+
+    date_str = request.args.get('date')
+    if date_str:
+        try:
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        except:
+            return jsonify({'error': 'Invalid date format'}), 400
+    else:
+        date_obj = datetime.now()
+
+    start_of_day = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT EXTRACT(HOUR FROM created_at) AS hour, SUM(bottles) AS total_bottles
+        FROM bottle_records
+        WHERE created_at >= %s AND created_at < %s
+        GROUP BY hour
+        ORDER BY hour
+    """, (start_of_day, end_of_day))
+
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    result = [{'hour': int(r[0]), 'total_bottles': int(r[1])} for r in rows]
+    return jsonify(result)
 
 # Logout
 @app.route('/logout')

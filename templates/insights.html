@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bottle Insights</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f8f9fc;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      font-size: 1.5rem;
+      color: #007bff;
+      margin-bottom: 20px;
+    }
+    #chartContainer {
+      width: 100%;
+      max-width: 800px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input[type="date"] {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      padding: 8px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 20px;
+      background: #007bff;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <header>📊 Bottle Records Insights</header>
+  
+  <input type="date" id="datePicker">
+  
+  <div id="chartContainer">
+    <canvas id="bottleChart"></canvas>
+  </div>
+
+  <button onclick="window.location.href='/admin'">⬅ Back to Dashboard</button>
+
+  <script>
+    async function loadHistogram(dateStr = null) {
+      const res = await fetch(`/get_hourly_bottles${dateStr ? '?date=' + dateStr : ''}`);
+      const data = await res.json();
+
+      const ctx = document.getElementById('bottleChart').getContext('2d');
+      if (window.chartInstance) window.chartInstance.destroy();
+
+      const labels = data.map(d => d.hour + ":00");
+      const values = data.map(d => d.total_bottles);
+
+      window.chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Bottles Delivered',
+            data: values,
+            backgroundColor: '#007bffaa'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'Hour of Day' }},
+            y: { title: { display: true, text: 'Bottles Count' }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    // Load today's data by default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('datePicker').value = today;
+    loadHistogram(today);
+
+    // When date changes
+    document.getElementById('datePicker').addEventListener('change', (e) => {
+      loadHistogram(e.target.value);
+    });
+  </script>
+</body>
+</html>
