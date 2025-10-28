@@ -187,7 +187,7 @@ def update_location():
         customer_id = data.get('customer_id')
         returned = int(data.get('returned_bottles', 0))
         borrowed = int(data.get('borrowed_bottles', 0))
-        cur.execute('SELECT latitude, longitude,bottles FROM customers WHERE id = %s', (customer_id))
+        cur.execute('SELECT latitude, longitude,bottles FROM customers WHERE id = %s', (customer_id,))
         row = cur.fetchone()
         lat, lon,prev_bottles = row
         new_bottles = prev_bottles - returned + borrowed
