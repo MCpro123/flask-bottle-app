@@ -197,8 +197,8 @@ def update_location():
         cur.execute('UPDATE customers SET bottles=%s WHERE id=%s', (new_bottles, customer_id))
 
         cur.execute('''
-        INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at,returned_bottles,borrowed_bottles)
-        VALUES (%s, %s, %s, %s, %s, NOW())
+        INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles,returned_bottles,borrowed_bottles,created_at)
+        VALUES (%s, %s, %s, %s, %s,%s,%s NOW())
     ''', (emp_id, customer_id, lat, lon, new_bottles,returned,borrowed))
     
 
@@ -441,6 +441,41 @@ def get_hourly_bottles():
 
     result = [{'hour': int(r[0]), 'total_bottles': int(r[1])} for r in rows]
     return jsonify(result)
+
+@app.route('/get_daily_totals')
+def get_daily_totals():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT DATE(created_at), SUM(borrowed_bottles)
+        FROM bottle_records
+        GROUP BY DATE(created_at)
+        ORDER BY DATE(created_at)
+    """)
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify([{'date': str(r[0]), 'total': int(r[1])} for r in rows])
+
+@app.route('/get_avg_bottles')
+def get_avg_bottles():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT AVG(bottles) FROM customers")
+    avg = cur.fetchone()[0] or 0
+    cur.close(); conn.close()
+    return jsonify({'avg': avg})
+
+
+@app.route('/get_returns_ratio')
+def get_returns_ratio():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT SUM(returned_bottles), SUM(borrowed_bottles) FROM bottle_records")
+    ret, delv = cur.fetchone()
+    cur.close(); conn.close()
+    return jsonify({'returned': int(ret or 0), 'delivered': int(delv or 0)})
+
+
 
 # Logout
 @app.route('/logout')

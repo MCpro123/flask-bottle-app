@@ -87,11 +87,35 @@
     <input type="number" id="priceInput" placeholder="Bottle price (₭)" min="0" step="0.01">
   </div>
 
+  <!-- Hourly Demand Pattern -->
   <div id="chartContainer">
     <canvas id="bottleChart"></canvas>
   </div>
-
+  <br>
   <div id="revenueOutput">💰 Total Revenue: -</div>
+  <br>
+    <!-- Daily Total Bottles Delivered -->
+  <div class="insight-card">
+    <h2>Daily Total Bottles Delivered</h2>
+    <canvas id="dailyChart"></canvas>
+  </div>
+
+
+
+  <!--  Average Bottles per Customer -->
+  <div class="insight-card">
+    <h2>Average Bottles per Customer</h2>
+    <p id="avgBottlesText">Loading...</p>
+  </div>
+
+
+  <!--  Empty Bottle Returns vs Deliveries -->
+  <div class="insight-card">
+    <h2>Empty Bottle Returns vs Deliveries</h2>
+    <canvas id="returnChart"></canvas>
+  </div>
+
+ 
 
   <button onclick="window.location.href='/admin'">⬅ Back to Dashboard</button>
 
@@ -136,6 +160,50 @@
       const revenue = totalBottles * price;
       document.getElementById('revenueOutput').textContent =
         `💰 Total Revenue: ${isNaN(revenue) ? '-' : revenue.toLocaleString()} ₭`;
+    }
+    async function loadDailyTotals() {
+      const res = await fetch('/get_daily_totals');
+      const data = await res.json();
+
+      const ctx = document.getElementById('dailyChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(d => d.date),
+          datasets: [{
+            label: 'Total Bottles per Day',
+            data: data.map(d => d.total),
+            borderColor: '#007bff',
+            tension: 0.3
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
+
+    async function loadAvgBottles() {
+      const res = await fetch('/get_avg_bottles');
+      const data = await res.json();
+      document.getElementById('avgBottlesText').textContent =
+        `Average Bottles per Customer: ${data.avg.toFixed(2)}`;
+    }
+
+    async function loadReturns() {
+      const res = await fetch('/get_returns_ratio');
+      const data = await res.json();
+
+      const ctx = document.getElementById('returnChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Returned Bottles', 'Delivered Bottles'],
+          datasets: [{
+            data: [data.returned, data.delivered],
+            backgroundColor: ['#28a745cc', '#007bffcc']
+          }]
+        },
+        options: { responsive: true }
+      });
     }
 
     // Load today's data by default
