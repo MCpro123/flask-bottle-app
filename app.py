@@ -174,7 +174,7 @@ def update_location():
             return jsonify({'status': 'error', 'message': 'Name and phone required'})
         # Save new customer with location
         cur.execute('''
-            INSERT INTO customers (name, phone, bottles, latitude, longitude,borrrowed_bottles)
+            INSERT INTO customers (name, phone, bottles, latitude, longitude)
             VALUES (%s, %s, %s, %s, %s,%s)
             RETURNING id
         ''', (name, phone, count, lat, lon,count))
