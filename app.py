@@ -175,9 +175,9 @@ def update_location():
         # Save new customer with location
         cur.execute('''
             INSERT INTO customers (name, phone, bottles, latitude, longitude)
-            VALUES (%s, %s, %s, %s, %s,%s)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        ''', (name, phone, count, lat, lon,count))
+        ''', (name, phone, count, lat, lon))
         customer_id = cur.fetchone()[0]
         cur.execute('''
         INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at)
