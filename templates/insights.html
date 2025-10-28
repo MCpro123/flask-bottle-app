@@ -210,6 +210,9 @@
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('datePicker').value = today;
     loadHistogram(today);
+    loadDailyTotals();
+    loadAvgBottles();
+    loadReturns();
 
     // Recalculate when date or price changes
     document.getElementById('datePicker').addEventListener('change', e => loadHistogram(e.target.value));

@@ -198,7 +198,7 @@ def update_location():
 
         cur.execute('''
         INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles,returned_bottles,borrowed_bottles,created_at)
-        VALUES (%s, %s, %s, %s, %s,%s,%s NOW())
+        VALUES (%s, %s, %s, %s, %s,%s,%s, NOW())
     ''', (emp_id, customer_id, lat, lon, new_bottles,returned,borrowed))
     
 
