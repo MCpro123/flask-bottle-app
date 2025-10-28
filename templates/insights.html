@@ -15,11 +15,37 @@
       flex-direction: column;
       align-items: center;
     }
+
     header {
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       color: #007bff;
       margin-bottom: 20px;
     }
+
+    /* ✅ Top-right input bar */
+    .top-bar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .top-bar input {
+      padding: 8px 12px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 180px;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .top-bar input:focus {
+      border-color: #007bff;
+      box-shadow: 0 0 4px rgba(0, 123, 255, 0.4);
+      outline: none;
+    }
+
     #chartContainer {
       width: 100%;
       max-width: 800px;
@@ -27,34 +53,27 @@
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 100px;
     }
-    input[type="date"] {
-      position: absolute;
-      right: 20px;
-      top: 20px;
-      padding: 8px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    input[type="number"]{
-      position: absolute;
-      right: 20px;
-      top: 60px;
-      padding: 8px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    button {
+
+    #revenueOutput {
       margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #28a745;
+    }
+
+    button {
+      margin-top: 25px;
       background: #007bff;
       color: white;
-      padding: 10px 15px;
+      padding: 10px 18px;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+      font-size: 1rem;
     }
+
     button:hover {
       background: #0056b3;
     }
@@ -62,18 +81,23 @@
 </head>
 <body>
   <header>📊 Bottle Records Insights</header>
-  
-  <input type="date" id="datePicker">
-  <input type="number" id="priceInput" placeholder="Enter bottle price" min="0">
+
+  <div class="top-bar">
+    <input type="date" id="datePicker">
+    <input type="number" id="priceInput" placeholder="Bottle price (₭)" min="0" step="0.01">
+  </div>
+
   <div id="chartContainer">
     <canvas id="bottleChart"></canvas>
   </div>
 
-   <div id="revenueOutput">💰 Total Revenue: -</div>
+  <div id="revenueOutput">💰 Total Revenue: -</div>
 
   <button onclick="window.location.href='/admin'">⬅ Back to Dashboard</button>
 
   <script>
+    let totalBottles = 0;
+
     async function loadHistogram(dateStr = null) {
       const res = await fetch(`/get_hourly_bottles${dateStr ? '?date=' + dateStr : ''}`);
       const data = await res.json();
@@ -83,6 +107,7 @@
 
       const labels = data.map(d => d.hour + ":00");
       const values = data.map(d => d.total_bottles);
+      totalBottles = values.reduce((a, b) => a + b, 0);
 
       window.chartInstance = new Chart(ctx, {
         type: 'bar',
@@ -98,12 +123,14 @@
           responsive: true,
           scales: {
             x: { title: { display: true, text: 'Hour of Day' }},
-            y: { title: { display: true, text: 'Bottles Count' }, beginAtZero: true }
+            y: { title: { display: true, text: 'Bottle Count' }, beginAtZero: true }
           }
         }
       });
-       updateRevenue();
+
+      updateRevenue();
     }
+
     function updateRevenue() {
       const price = parseFloat(document.getElementById('priceInput').value || 0);
       const revenue = totalBottles * price;
@@ -116,11 +143,8 @@
     document.getElementById('datePicker').value = today;
     loadHistogram(today);
 
-    // When date changes
-    document.getElementById('datePicker').addEventListener('change', (e) => {
-      loadHistogram(e.target.value);
-    });
-
+    // Recalculate when date or price changes
+    document.getElementById('datePicker').addEventListener('change', e => loadHistogram(e.target.value));
     document.getElementById('priceInput').addEventListener('input', updateRevenue);
   </script>
 </body>

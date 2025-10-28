@@ -57,6 +57,7 @@ def init_db():
             latitude DOUBLE PRECISION,
             longitude DOUBLE PRECISION,
             bottles INTEGER,
+            returned_bottles INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         )
     ''')
@@ -178,19 +179,28 @@ def update_location():
             RETURNING id
         ''', (name, phone, count, lat, lon))
         customer_id = cur.fetchone()[0]
-    else:
-        customer_id = data.get('customer_id')
-        cur.execute('SELECT latitude, longitude FROM customers WHERE id = %s', (customer_id,))
-        row = cur.fetchone()
-        lat, lon = row
-        # Only update bottle count, not location
-        cur.execute('UPDATE customers SET bottles=%s WHERE id=%s', (count, customer_id))
-
-    # Record new delivery (location always recorded for employee tracking)
-    cur.execute('''
+        cur.execute('''
         INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at)
         VALUES (%s, %s, %s, %s, %s, NOW())
     ''', (emp_id, customer_id, lat, lon, count))
+    else:
+        customer_id = data.get('customer_id')
+        returned = int(data.get('returned_bottles', 0))
+        borrowed = int(data.get('borrowed_bottles', 0))
+        cur.execute('SELECT latitude, longitude,bottles FROM customers WHERE id = %s', (customer_id,))
+        row = cur.fetchone()
+        lat, lon,prev_bottles = row
+        prev_bottles = int(prev_bottles)
+        new_bottles = prev_bottles - returned + borrowed
+
+        # Only update bottle count, not location
+        cur.execute('UPDATE customers SET bottles=%s WHERE id=%s', (new_bottles, customer_id))
+
+        cur.execute('''
+        INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at,returned_bottles,borrowed_bottles)
+        VALUES (%s, %s, %s, %s, %s, NOW())
+    ''', (emp_id, customer_id, lat, lon, new_bottles,returned,borrowed))
+    
 
     conn.commit()
     cur.close()

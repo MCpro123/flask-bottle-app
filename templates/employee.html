@@ -27,7 +27,8 @@
       <p><b>Name:</b> <span id="exName"></span></p>
       <p><b>Phone:</b> <span id="exPhone"></span></p>
       <p><b>Previous Bottles:</b> <span id="exPrev"></span></p>
-      <input id="exNewCount" type="number" placeholder="New bottle count" min="0">
+      <input id="returnedCount" type="number" placeholder="Returned bottles" min="0">
+      <input id="borrowedCount" type="number" placeholder="New bottles taken" min="0">
       <button id="saveUpdate">Update Bottles</button>
     </div>
 
@@ -224,29 +225,39 @@
         location.reload();
       } else alert('❌ Error: ' + data.message);
     };
+  
 
-    // Update existing customer
     document.getElementById('saveUpdate').onclick = async (e) => {
-      const id = e.target.getAttribute('data-id');
-      const count = document.getElementById('exNewCount').value;
-      if (!count) return alert('Enter new bottle count.');
+    const id = e.target.getAttribute('data-id');
+    const returned = parseInt(document.getElementById('returnedCount').value || 0);
+    const borrowed = parseInt(document.getElementById('borrowedCount').value || 0);
 
-      const res = await fetch('/update_location', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'existing', customer_id: id, count }) // remove lat, lon to avoid overwriting
-      });
+    if (isNaN(returned) || isNaN(borrowed)) {
+      return alert('Enter valid numbers for returned and borrowed bottles.');
+    }
 
-      const data = await res.json();
-      if (data.status === 'success') {
-        alert('✅ Bottle count updated!');
-        location.reload();
-      } else alert('❌ Error: ' + data.message);
-    };
+    const res = await fetch('/update_location', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'existing',
+        customer_id: id,
+        returned_bottles: returned,
+        borrowed_bottles: borrowed
+      })
+    });
+
+       const data = await res.json();
+  if (data.status === 'success') {
+    alert('✅ Bottles updated successfully!');
+    location.reload();
+  } else alert('❌ Error: ' + data.message);
+};
 
   } catch (err) {
     alert("Could not get location: " + err);
   }
+  
 })();
 </script>
 </body>
