@@ -174,10 +174,10 @@ def update_location():
             return jsonify({'status': 'error', 'message': 'Name and phone required'})
         # Save new customer with location
         cur.execute('''
-            INSERT INTO customers (name, phone, bottles, latitude, longitude)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO customers (name, phone, bottles, latitude, longitude,borrrowed_bottles)
+            VALUES (%s, %s, %s, %s, %s,%s)
             RETURNING id
-        ''', (name, phone, count, lat, lon))
+        ''', (name, phone, count, lat, lon,count))
         customer_id = cur.fetchone()[0]
         cur.execute('''
         INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at)
@@ -187,10 +187,9 @@ def update_location():
         customer_id = data.get('customer_id')
         returned = int(data.get('returned_bottles', 0))
         borrowed = int(data.get('borrowed_bottles', 0))
-        cur.execute('SELECT latitude, longitude,bottles FROM customers WHERE id = %s', (customer_id,))
+        cur.execute('SELECT latitude, longitude,bottles FROM customers WHERE id = %s', (customer_id))
         row = cur.fetchone()
         lat, lon,prev_bottles = row
-        prev_bottles = int(prev_bottles)
         new_bottles = prev_bottles - returned + borrowed
 
         # Only update bottle count, not location
@@ -428,7 +427,7 @@ def get_hourly_bottles():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT EXTRACT(HOUR FROM created_at) AS hour, SUM(bottles) AS total_bottles
+        SELECT EXTRACT(HOUR FROM created_at) AS hour, SUM(borrowed_bottles) AS total_bottles
         FROM bottle_records
         WHERE created_at >= %s AND created_at < %s
         GROUP BY hour
@@ -456,14 +455,8 @@ def get_daily_totals():
     cur.close(); conn.close()
     return jsonify([{'date': str(r[0]), 'total': int(r[1])} for r in rows])
 
-@app.route('/get_avg_bottles')
-def get_avg_bottles():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT AVG(bottles) FROM customers")
-    avg = cur.fetchone()[0] or 0
-    cur.close(); conn.close()
-    return jsonify({'avg': avg})
+
+    
 
 
 @app.route('/get_returns_ratio')

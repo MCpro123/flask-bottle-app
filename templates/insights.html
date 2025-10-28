@@ -102,12 +102,6 @@
 
 
 
-  <!--  Average Bottles per Customer -->
-  <div class="insight-card">
-    <h2>Average Bottles per Customer</h2>
-    <p id="avgBottlesText">Loading...</p>
-  </div>
-
 
   <!--  Empty Bottle Returns vs Deliveries -->
   <div class="insight-card">
@@ -181,12 +175,7 @@
       });
     }
 
-    async function loadAvgBottles() {
-      const res = await fetch('/get_avg_bottles');
-      const data = await res.json();
-      document.getElementById('avgBottlesText').textContent =
-        `Average Bottles per Customer: ${data.avg.toFixed(2)}`;
-    }
+    
 
     async function loadReturns() {
       const res = await fetch('/get_returns_ratio');
@@ -211,7 +200,7 @@
     document.getElementById('datePicker').value = today;
     loadHistogram(today);
     loadDailyTotals();
-    loadAvgBottles();
+   
     loadReturns();
 
     // Recalculate when date or price changes
