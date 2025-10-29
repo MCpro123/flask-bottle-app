@@ -6,6 +6,11 @@
   <title>Employee Login</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
+    /* ✅ Fix input overflow by setting box-sizing globally */
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       height: 100vh;
@@ -23,7 +28,6 @@
       width: 90%;
       max-width: 400px;
       padding: 40px 35px;
-      box-sizing: border-box;
     }
 
     .login-box h2 {
@@ -78,12 +82,10 @@
       font-size: 14px;
     }
 
-    /* Responsive design */
     @media (max-width: 480px) {
       .login-box {
         padding: 30px 25px;
       }
-
       .login-box h2 {
         font-size: 1.4rem;
       }
