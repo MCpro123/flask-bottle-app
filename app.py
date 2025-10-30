@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify,send_file
 import psycopg2
 import psycopg2.extras
 from datetime import datetime
 import config  # contains POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_PORT, SECRET_KEY
 from datetime import datetime, timedelta
+import requests
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -99,6 +100,27 @@ def login():
         else:
             msg = 'Incorrect ID or Password!'
     return render_template('login.html', msg=msg)
+
+TILE_CACHE_DIR = "tile_cache"
+
+@app.route('/tiles/<int:z>/<int:x>/<int:y>.png')
+def cached_tile(z, x, y):
+    os.makedirs(f"{TILE_CACHE_DIR}/{z}/{x}", exist_ok=True)
+    tile_path = f"{TILE_CACHE_DIR}/{z}/{x}/{y}.png"
+
+    # If tile exists locally, serve it
+    if os.path.exists(tile_path):
+        return send_file(tile_path, mimetype='image/png', cache_timeout=3600*24*30)
+
+    # Otherwise download and cache
+    url = f"https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    r = requests.get(url, timeout=10)
+    if r.status_code == 200:
+        with open(tile_path, 'wb') as f:
+            f.write(r.content)
+        return send_file(tile_path, mimetype='image/png', cache_timeout=3600*24*30)
+    else:
+        return "Tile not found", 404
 
 # Employee dashboard
 @app.route('/employee')

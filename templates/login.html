@@ -6,7 +6,6 @@
   <title>Employee Login</title>
   
   <style>
-    /* ✅ Fix input overflow by setting box-sizing globally */
     * {
       box-sizing: border-box;
     }
@@ -23,8 +22,8 @@
 
     .login-box {
       background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
       width: 90%;
       max-width: 400px;
       padding: 40px 35px;
@@ -33,24 +32,49 @@
     .login-box h2 {
       text-align: center;
       margin-bottom: 30px;
-      color: #333;
+      color: #222;
       font-size: 1.6rem;
       font-weight: 600;
     }
 
     .login-box input {
       width: 100%;
-      padding: 12px 14px;
+      padding: 12px 44px 12px 14px; /* extra padding for icon */
       margin: 10px 0;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 15px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
     .login-box input:focus {
       border-color: #007bff;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .toggle-password:hover {
+      color: #007bff;
     }
 
     .login-box button {
@@ -58,7 +82,7 @@
       padding: 12px;
       margin-top: 15px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       background-color: #007bff;
       color: white;
       font-size: 16px;
@@ -90,6 +114,16 @@
         font-size: 1.4rem;
       }
     }
+
+    /* Eye icons (modern minimalist SVGs) */
+    .icon-eye,
+    .icon-eye-slash {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
   </style>
 </head>
 <body>
@@ -97,12 +131,49 @@
     <h2>Employee Login</h2>
     <form method="POST">
       <input type="text" name="employee_id" placeholder="Employee ID" required>
-      <input type="password" name="password" placeholder="Password" required>
+
+      <div class="password-wrapper">
+        <input type="password" id="password" name="password" placeholder="Password" required>
+        <button type="button" class="toggle-password" id="togglePassword">
+          <!-- default: eye (show icon) -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye" viewBox="0 0 24 24">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
       <button type="submit">Login</button>
     </form>
+
     {% if msg %}
       <p>{{ msg }}</p>
     {% endif %}
   </div>
+
+  <script>
+    const passwordInput = document.getElementById("password");
+    const toggleButton = document.getElementById("togglePassword");
+
+    const eyeIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye" viewBox="0 0 24 24">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>`;
+
+    const eyeSlashIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye-slash" viewBox="0 0 24 24">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.1 18.1 0 0 1 4.25-5.94"/>
+        <path d="M1 1l22 22"/>
+        <path d="M10.58 10.58A3 3 0 0 0 13.42 13.42"/>
+        <path d="M9.88 4.12A9.77 9.77 0 0 1 12 4c7 0 11 8 11 8a18.1 18.1 0 0 1-3.17 4.49"/>
+      </svg>`;
+
+    toggleButton.addEventListener("click", () => {
+      const isHidden = passwordInput.type === "password";
+      passwordInput.type = isHidden ? "text" : "password";
+      toggleButton.innerHTML = isHidden ? eyeSlashIcon : eyeIcon;
+    });
+  </script>
 </body>
 </html>
