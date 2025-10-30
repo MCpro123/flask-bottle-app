@@ -261,9 +261,9 @@ document.getElementById('searchBtnPwd').addEventListener('click', async () => {
     document.getElementById('changePwdBtn').addEventListener('click', () => {
       pwdDiv.innerHTML = `
         <p><b>Employee:</b> ${data.name} (ID: ${data.id})</p>
-        <div class="password-wrapper" style="position: relative;margin-top: 10px;display:flex;align-items: center;">
-        <input type="password" id="newPwd" placeholder="Enter New Password" style="width: 100%;padding: 10px 40px 10px 10px;border-radius: 6px;border: 1px solid #ccc;font-size: 1rem;">
-        <button type="button" id="togglePassword" style="position: absolute;right: 12px;top: 50%;transform: translateY(-50%);background: none;border: none;cursor: pointer;font-size: 18px;color: #666;padding: 0;line-height: 1;width: 24px;height: 24px;">
+        <div class="password-wrapper" style="position: relative;margin-top: 10px;">
+          <input type="password" id="newPwd" placeholder="Enter New Password" style="width: 100%;padding: 10px 40px 10px 10px;border-radius: 6px;border: 1px solid #ccc;font-size: 1rem;">
+          <button type="button" id="togglePassword" style="position: absolute;right: 12px;top: 50%;transform: translateY(-50%);background: none;border: none;cursor: pointer;font-size: 18px;color: #666;padding: 0;line-height: 1;width: 24px;height: 24px;">
           <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye" viewBox="0 0 24 24" style="width: 20px;
       height: 20px;
       stroke: currentColor;
@@ -274,8 +274,8 @@ document.getElementById('searchBtnPwd').addEventListener('click', async () => {
             <circle cx="12" cy="12" r="3"/>
           </svg>
         </button>
-        <button id="savePwdBtn">Save</button>
         </div>
+        <button id="savePwdBtn" style="margin-top:10px;padding: 10px 20px;border-radius: 6px;background-color: #007bff;color: white;border:none;cursor:pointer;">Save</button>
       `;
     const passwordInput = document.getElementById("newPwd");
     const toggleButton = document.getElementById("togglePassword");
