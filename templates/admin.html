@@ -261,9 +261,54 @@ document.getElementById('searchBtnPwd').addEventListener('click', async () => {
     document.getElementById('changePwdBtn').addEventListener('click', () => {
       pwdDiv.innerHTML = `
         <p><b>Employee:</b> ${data.name} (ID: ${data.id})</p>
+        <div class="password-wrapper" style="position: relative;margin-top: 10px;">
         <input type="password" id="newPwd" placeholder="Enter New Password">
+        <button type="button" id="togglePassword" style="position: absolute;right: 12px;top: 50%;transform: translateY(-50%);background: none;border: none;cursor: pointer;font-size: 18px;color: #666;padding: 0;line-height: 1;width: 24px;height: 24px;">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye" viewBox="0 0 24 24" style="width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      pointer-events: none;">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
         <button id="savePwdBtn">Save</button>
+        </div>
       `;
+    const passwordInput = document.getElementById("newPwd");
+    const toggleButton = document.getElementById("togglePassword");
+
+    const eyeIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye" viewBox="0 0 24 24" style="width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      pointer-events: none;">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>`;
+
+    const eyeSlashIcon = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye-slash" viewBox="0 0 24 24" style="width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      pointer-events: none;">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.1 18.1 0 0 1 4.25-5.94"/>
+        <path d="M1 1l22 22"/>
+        <path d="M10.58 10.58A3 3 0 0 0 13.42 13.42"/>
+        <path d="M9.88 4.12A9.77 9.77 0 0 1 12 4c7 0 11 8 11 8a18.1 18.1 0 0 1-3.17 4.49"/>
+      </svg>`;
+
+    toggleButton.addEventListener("click", () => {
+      const isHidden = passwordInput.type === "password";
+      passwordInput.type = isHidden ? "text" : "password";
+      toggleButton.innerHTML = isHidden ? eyeSlashIcon : eyeIcon;
+    });
 
       document.getElementById('savePwdBtn').addEventListener('click', async () => {
         const newPwd = document.getElementById('newPwd').value.trim();

@@ -39,7 +39,7 @@
 
     .login-box input {
       width: 100%;
-      padding: 12px 44px 12px 14px; /* extra padding for icon */
+      padding: 12px 44px 12px 14px; /* space for the eye icon */
       margin: 10px 0;
       border: 1px solid #ccc;
       border-radius: 8px;
@@ -55,8 +55,10 @@
 
     .password-wrapper {
       position: relative;
+      margin-top: 10px;
     }
 
+    /* ✅ This keeps the eye icon inside the input field, not full width */
     .toggle-password {
       position: absolute;
       right: 12px;
@@ -67,17 +69,17 @@
       cursor: pointer;
       font-size: 18px;
       color: #666;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       padding: 0;
+      line-height: 1;
+      width: 24px;
+      height: 24px;
     }
 
     .toggle-password:hover {
       color: #007bff;
     }
 
-    .login-box button {
+    .login-box button[type="submit"] {
       width: 100%;
       padding: 12px;
       margin-top: 15px;
@@ -91,11 +93,11 @@
       transition: background-color 0.25s, transform 0.1s;
     }
 
-    .login-box button:hover {
+    .login-box button[type="submit"]:hover {
       background-color: #0056b3;
     }
 
-    .login-box button:active {
+    .login-box button[type="submit"]:active {
       transform: scale(0.98);
     }
 
@@ -106,16 +108,6 @@
       font-size: 14px;
     }
 
-    @media (max-width: 480px) {
-      .login-box {
-        padding: 30px 25px;
-      }
-      .login-box h2 {
-        font-size: 1.4rem;
-      }
-    }
-
-    /* Eye icons (modern minimalist SVGs) */
     .icon-eye,
     .icon-eye-slash {
       width: 20px;
@@ -123,6 +115,7 @@
       stroke: currentColor;
       fill: none;
       stroke-width: 2;
+      pointer-events: none;
     }
   </style>
 </head>
@@ -135,7 +128,6 @@
       <div class="password-wrapper">
         <input type="password" id="password" name="password" placeholder="Password" required>
         <button type="button" class="toggle-password" id="togglePassword">
-          <!-- default: eye (show icon) -->
           <svg xmlns="http://www.w3.org/2000/svg" class="icon-eye" viewBox="0 0 24 24">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
             <circle cx="12" cy="12" r="3"/>
