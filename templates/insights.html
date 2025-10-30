@@ -22,23 +22,35 @@
       margin-bottom: 20px;
     }
 
-    /* ✅ Top-right input bar */
-    .top-bar {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      display: flex;
-      gap: 10px;
-    }
+    
+    /* Top input bar now in normal flow */
+.top-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;       /* allow wrapping on small screens */
+  justify-content: center; /* center inputs horizontally */
+  margin-bottom: 20px;   /* spacing below the inputs */
+  width: 100%;
+  max-width: 400px;      /* limit max width for nicer layout */
+}
 
-    .top-bar input {
-      padding: 8px 12px;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      width: 180px;
-      transition: all 0.2s ease-in-out;
-    }
+.top-bar input {
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  flex: 1 1 150px; /* grow and shrink nicely */
+  min-width: 120px; /* prevent too small on tiny screens */
+}
+
+/* Stack vertically on very small screens */
+@media (max-width: 350px) {
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 
     .top-bar input:focus {
       border-color: #007bff;
@@ -77,6 +89,8 @@
     button:hover {
       background: #0056b3;
     }
+
+    
   </style>
 </head>
 <body>
