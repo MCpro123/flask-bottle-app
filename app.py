@@ -5,13 +5,16 @@ from datetime import datetime
 import config  # contains POSTGRES_HOST, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_PORT, SECRET_KEY
 from datetime import datetime, timedelta
 import requests
+from werkzeug.security import generate_password_hash, check_password_hash
+import re
+
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 # Security & XSS Protection Settings
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,   # Prevent JS from accessing session cookie
-    SESSION_COOKIE_SECURE=False,    # Set to True in production (HTTPS only)
+    SESSION_COOKIE_SECURE=True,    # Set to True in production (HTTPS only)
     SESSION_COOKIE_SAMESITE='Lax',  # Protects against CSRF
 )
 
@@ -72,15 +75,22 @@ def init_db():
         )
     ''')
     
-    # create default admin
+    # create default admin (update to hashed password)
     cur.execute("SELECT * FROM employees WHERE name='Admin'")
     if not cur.fetchone():
+        hashed = generate_password_hash("admin123")   # use a secure default only in dev
         cur.execute("INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s)",
-                    ("Admin", "admin123", True))
+                    ("Admin", hashed, True))
     
     conn.commit()
     cur.close()
     conn.close()
+
+def require_login():
+    return session.get('loggedin', False)
+
+def require_admin():
+    return session.get('loggedin') and session.get('is_admin')
 
 # ---------------- Routes ----------------
 
@@ -94,12 +104,12 @@ def login():
 
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cur.execute('SELECT * FROM employees WHERE id=%s AND password=%s AND is_active=TRUE', (employee_id, password))
+        cur.execute('SELECT * FROM employees WHERE id=%s AND is_active=TRUE', (employee_id,))
         account = cur.fetchone()
         cur.close()
         conn.close()
 
-        if account:
+        if account and check_password_hash(account['password'], password):
             session['loggedin'] = True
             session['employee_id'] = account['id']
             session['is_admin'] = account['is_admin']
@@ -201,8 +211,12 @@ def update_location():
     if cust_type == "new":
         name = data.get('name')
         phone = data.get('phone')
+        name = request.json.get("name", "").strip()
+        phone = request.json.get("phone", "").strip()
         if not name or not phone:
             return jsonify({'status': 'error', 'message': 'Name and phone required'})
+        if not re.match(r'^[\w\s\-\+]+$', name):
+            return jsonify({"status": "error", "message": "Invalid characters in name"}), 400
         # Save new customer with location
         cur.execute('''
             INSERT INTO customers (name, phone, bottles, latitude, longitude)
@@ -273,10 +287,12 @@ def add_employee():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
+        # inside add_employee route, replace insertion:
+        hashed_pwd = generate_password_hash(password)
         cur.execute(
             "INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s) RETURNING id",
-            (name, password, False)
-        )
+            (name, hashed_pwd, False)
+)
         new_id = cur.fetchone()[0]
         conn.commit()
     except Exception as e:
@@ -307,6 +323,9 @@ def get_employee(id):
 # Delete employee by ID (AJAX)
 @app.route('/delete_employee/<int:id>', methods=['DELETE'])
 def delete_employee(id):
+    if not require_admin():
+        return jsonify({'status':'unauthorized'}), 403
+    
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -498,8 +517,17 @@ def get_returns_ratio():
 
 @app.route('/change_password/<int:emp_id>', methods=['POST'])
 def change_password(emp_id):
+    if not require_login():
+        return jsonify({'status':'unauthorized'}), 403
+    
+    # only admin or the owner
+    if not (session.get('is_admin') or session.get('employee_id') == emp_id):
+        return jsonify({'status': 'forbidden'}), 403
+
+
     data = request.get_json()
     new_password = data.get('new_password')
+
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("UPDATE employees SET password = %s WHERE id = %s", (new_password, emp_id))
@@ -519,3 +547,4 @@ def logout():
 if __name__ == '__main__':
     init_db()  # initialize Postgres tables
     app.run(debug=True)
+

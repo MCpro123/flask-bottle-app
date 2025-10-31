@@ -9,7 +9,7 @@
 </head>
 
 <body>
-<h2>Welcome Employee #{{ employee_id }}</h2>
+<h2>Welcome Employee #{{ employee_id | e }}</h2>
 
   <div id="map"></div>
 
@@ -144,6 +144,14 @@
   }
 </style>
 <script>
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+}
 (async () => {
   try {
     
@@ -192,7 +200,7 @@
         if (c.latitude && c.longitude) {
           L.marker([c.latitude, c.longitude], { icon: customerIcon })
             .addTo(map)
-            .bindPopup(`🧴 <b>${c.customer_name}</b><br>💧 ${c.customer_bottles} bottles<br>📞 ${c.customer_phone}`)
+            .bindPopup(`🧴 <b>${escapeHtml(c.customer_name)}</b><br>💧 ${c.customer_bottles} bottles<br>📞 ${escapeHtml(c.customer_phone)}`)
             .on('click', () => {
               document.getElementById('newCustomerForm').style.display = 'none';
               document.getElementById('existingCustomerForm').style.display = 'block';
@@ -231,9 +239,17 @@
     const id = e.target.getAttribute('data-id');
     const returned = parseInt(document.getElementById('returnedCount').value || 0);
     const borrowed = parseInt(document.getElementById('borrowedCount').value || 0);
+    const prev = parseInt(document.getElementById('exPrev').textContent || 0);
+
 
     if (isNaN(returned) || isNaN(borrowed)) {
       return alert('Enter valid numbers for returned and borrowed bottles.');
+    }
+    if (returned > prev){
+      return alert('Cannot return more than borrowed bottles')
+    }
+    if (returned != prev && borrowed > returned){
+      return alert('Customers can only borrowed more than previous bottles if all borrowed bottles are returned')
     }
 
     const res = await fetch('/update_location', {
