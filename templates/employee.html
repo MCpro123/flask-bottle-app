@@ -46,23 +46,23 @@
     background-color: #f5f6fa;
   }
 
-  /* Header */
+
   h2 {
     text-align: center;
     margin: 10px 0;
     font-size: 1.4rem;
   }
 
-  /* ✅ The map takes 3/5 of the screen height */
+  
   #map {
     width: 90%;
-    height: 60vh; /* 3/5 of the screen */
+    height: 60vh; 
+    margin: auto;
     flex: 3;
-    border-radius: 0;
+    border-radius: 10px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   }
 
-  /* ✅ Forms container takes 2/5 of screen height */
   .form-container {
     flex: 2;
     width: 100%;
@@ -115,7 +115,7 @@
     background-color: #0056b3;
   }
 
-  /* Logout link */
+  
   a {
     text-align: center;
     display: block;
@@ -128,7 +128,7 @@
     text-decoration: underline;
   }
 
-  /* ✅ Responsive for mobile */
+  
   @media (max-width: 600px) {
     #map {
       height: 60vh;
@@ -146,18 +146,18 @@
 <script>
 (async () => {
   try {
-    // Get current location
+    
     const pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
     });
     const lat = pos.coords.latitude;
     const lon = pos.coords.longitude;
     const radius = 5;
-    // Setup map
+    
     const map = L.map('map').setView([lat, lon], 17);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);
 
-    // Red "You are here" marker
+    
     const currentIcon = L.icon({
       iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
       iconSize: [25, 41],
@@ -174,7 +174,7 @@
       })
       .openPopup();
 
-    // Load assigned customers
+    
     const res = await fetch(`/get_employee_markers?lat=${lat}&lon=${lon}`)
     const data = await res.json();
 
@@ -205,7 +205,7 @@
       });
     }
 
-    // Save new customer
+    
     document.getElementById('saveNew').onclick = async () => {
       const name = document.getElementById('customerName').value;
       const phone = document.getElementById('customerPhone').value;

@@ -8,6 +8,15 @@ import requests
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
+# Security & XSS Protection Settings
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,   # Prevent JS from accessing session cookie
+    SESSION_COOKIE_SECURE=False,    # Set to True in production (HTTPS only)
+    SESSION_COOKIE_SAMESITE='Lax',  # Protects against CSRF
+)
+
+# Enable built-in Flask XSS protection via Jinja2 autoescaping
+app.jinja_env.autoescape = True
 
 # # PostgreSQL connection
 # def get_db_connection():
