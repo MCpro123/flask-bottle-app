@@ -46,7 +46,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS employees (
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
-            password VARCHAR(100) NOT NULL,
+            password VARCHAR(255) NOT NULL,
             is_admin BOOLEAN DEFAULT FALSE,
             is_active BOOLEAN DEFAULT TRUE
         )
