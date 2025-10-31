@@ -543,8 +543,9 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+init_db()  # initialize Postgres tables
 # ---------------- Main ----------------
 if __name__ == '__main__':
-    init_db()  # initialize Postgres tables
+    
     app.run(debug=True)
 
