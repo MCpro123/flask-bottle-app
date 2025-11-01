@@ -123,6 +123,12 @@
     <canvas id="returnChart"></canvas>
   </div>
 
+  <div class="insight-card">
+    <h2>Delivered vs Available Bottles</h2>
+    <input type="number" id="availableInput" placeholder="Total available bottles" min="0">
+    <canvas id="availableChart"></canvas>
+  </div>
+
  
 
   <button onclick="window.location.href='/admin'">⬅ Back to Dashboard</button>
@@ -209,6 +215,25 @@
       });
     }
 
+    async function loadAvailable() {
+      const res = await fetch('/get_returns_ratio');
+      const data = await res.json();
+      const available = parseInt(document.getElementById('availableInput').value || 0);
+
+      const ctx = document.getElementById('availableChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Delivered', 'Available'],
+          datasets: [{
+            data: [data.delivered,available],
+            backgroundColor: ['#007bffcc', '#ffc107cc']
+          }]
+        },
+        options: { responsive: true }
+      });
+    }
+
     // Load today's data by default
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('datePicker').value = today;
@@ -216,6 +241,7 @@
     loadDailyTotals();
    
     loadReturns();
+    loadAvailable();
 
     // Recalculate when date or price changes
     document.getElementById('datePicker').addEventListener('change', e => loadHistogram(e.target.value));

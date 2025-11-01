@@ -239,9 +239,9 @@ def update_location():
         ''', (name, phone, count, lat, lon))
         customer_id = cur.fetchone()[0]
         cur.execute('''
-        INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles, created_at)
-        VALUES (%s, %s, %s, %s, %s, NOW())
-    ''', (emp_id, customer_id, lat, lon, count))
+        INSERT INTO bottle_records (employee_id, customer_id, latitude, longitude, bottles,borrowed_bottles, created_at)
+        VALUES (%s, %s, %s, %s, %s,%s, NOW())
+    ''', (emp_id, customer_id, lat, lon, count,count))
     else:
         customer_id = data.get('customer_id')
         returned = int(data.get('returned_bottles', 0))
