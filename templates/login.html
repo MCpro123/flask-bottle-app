@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Employee Login</title>
-  
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -143,7 +143,7 @@
       <p>{{ msg }}</p>
     {% endif %}
   </div>
-
+  
   <script>
     const passwordInput = document.getElementById("password");
     const toggleButton = document.getElementById("togglePassword");
@@ -166,6 +166,17 @@
       const isHidden = passwordInput.type === "password";
       passwordInput.type = isHidden ? "text" : "password";
       toggleButton.innerHTML = isHidden ? eyeSlashIcon : eyeIcon;
+    });
+
+    const form = document.querySelector("form");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      
+      const passwordInput = document.getElementById("password");
+      const hashed = CryptoJS.SHA256(passwordInput.value).toString();
+      passwordInput.value = hashed;
+
+      form.submit();
     });
   </script>
 </body>

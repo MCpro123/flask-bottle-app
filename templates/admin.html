@@ -7,6 +7,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.js"></script>
   <style>
     body {
       margin: 0;
@@ -319,10 +320,13 @@ document.getElementById('searchBtnPwd').addEventListener('click', async () => {
           alert('Enter new password');
           return;
         }
+        // Hash password before sending
+        const hashedPwd = CryptoJS.SHA256(newPwd).toString();
+
         const res = await fetch(`/change_password/${id}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' ,'X-CSRFToken': csrfToken},
-          body: JSON.stringify({ new_password: newPwd })
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          body: JSON.stringify({ new_password: hashedPwd })
         });
         const dataRes = await res.json();
         if (dataRes.status === 'success') {

@@ -8,7 +8,7 @@ import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 from flask_wtf.csrf import CSRFProtect,generate_csrf
-
+import hashlib
 
 
 app = Flask(__name__)
@@ -302,10 +302,12 @@ def add_employee():
     cur = conn.cursor()
     try:
         # inside add_employee route, replace insertion:
-        hashed_pwd = generate_password_hash(password)
+        hashed_client = hashlib.sha256(password.encode()).hexdigest()
+        db_hash = generate_password_hash(hashed_client)
+        
         cur.execute(
             "INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s) RETURNING id",
-            (name, hashed_pwd, False)
+            (name, db_hash, False)
 )
         new_id = cur.fetchone()[0]
         conn.commit()
@@ -439,6 +441,8 @@ def get_employee_markers():
 
 @app.route('/export_bottle_records')
 def export_bottle_records():
+    if not require_admin():
+        return jsonify({'status':'unauthorized'}), 403
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
@@ -537,6 +541,9 @@ def change_password(emp_id):
     # only admin or the owner
     if not (session.get('is_admin') or session.get('employee_id') == emp_id):
         return jsonify({'status': 'forbidden'}), 403
+    
+    if not new_password:
+        return {'status': 'error', 'message': 'Password required'}, 400
 
 
     data = request.get_json()
