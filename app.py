@@ -12,6 +12,14 @@ from flask_wtf.csrf import CSRFProtect,generate_csrf
 
 
 app = Flask(__name__)
+
+
+@app.before_request
+def force_https():
+    if not request.is_secure and app.env != "development":
+        url = request.url.replace("http://", "https://", 1)
+        return redirect(url, code=301)
+    
 app.secret_key = config.SECRET_KEY
 # Security & XSS Protection Settings
 app.config.update(
