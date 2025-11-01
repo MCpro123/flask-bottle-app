@@ -83,7 +83,7 @@ def init_db():
             latitude DOUBLE PRECISION,
             longitude DOUBLE PRECISION,
             bottles INTEGER,
-            borrowed_bottles INTEGER,
+            borrowed_bottles INTEGER DEFAULT 0,
             returned_bottles INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         )
