@@ -544,8 +544,7 @@ def change_password(emp_id):
     if not (session.get('is_admin') or session.get('employee_id') == emp_id):
         return jsonify({'status': 'forbidden'}), 403
     
-    if not new_password:
-        return {'status': 'error', 'message': 'Password required'}, 400
+    
 
 
     data = request.get_json()
