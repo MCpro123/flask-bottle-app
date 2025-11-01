@@ -12,7 +12,7 @@
 <h2>Welcome Employee #{{ employee_id | e }}</h2>
 
   <div id="map"></div>
-
+  <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
   <div class="form-container">
     <div id="newCustomerForm">
       <h3>New Customer</h3>
@@ -144,6 +144,7 @@
   }
 </style>
 <script>
+  
   function escapeHtml(str) {
     return str
       .replace(/&/g, "&amp;")
@@ -154,7 +155,7 @@
 }
 (async () => {
   try {
-    
+    const csrfToken = document.getElementById("csrf_token").value;
     const pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
     });
@@ -223,7 +224,7 @@
 
       const res = await fetch('/update_location', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json','X-CSRFToken': csrfToken },
         body: JSON.stringify({ type: 'new', lat, lon, name, phone, count })
       });
 
@@ -254,7 +255,7 @@
 
     const res = await fetch('/update_location', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json','X-CSRFToken': csrfToken },
       body: JSON.stringify({
         type: 'existing',
         customer_id: id,

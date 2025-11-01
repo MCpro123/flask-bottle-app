@@ -123,6 +123,7 @@
   <div class="login-box">
     <h2>Employee Login</h2>
     <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="employee_id" placeholder="Employee ID" required>
 
       <div class="password-wrapper">

@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   <style>
     body {
       margin: 0;
@@ -187,12 +188,14 @@
     }
   });
 })();
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
 
 // ➕ Add employee
 document.getElementById('addEmployeeForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const formData = new FormData(e.target);
-  const res = await fetch('/add_employee', { method: 'POST', body: formData });
+  const res = await fetch('/add_employee', { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: formData });
   const result = await res.json();
   const msg = document.getElementById('addEmployeeMsg');
   if (result.status === 'success') {
@@ -225,7 +228,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     
     document.getElementById('deleteBtn').addEventListener('click', async () => {
       if (!confirm(`Are you sure you want to delete ${data.name}?`)) return;
-      const delRes = await fetch(`/delete_employee/${id}`, { method: 'DELETE' });
+      const delRes = await fetch(`/delete_employee/${id}`, { method: 'DELETE', headers: { 'X-CSRFToken': csrfToken }});
       const delData = await delRes.json();
       if (delData.status === 'success') {
         resultDiv.innerHTML = `<p style="color:green;">✅ Employee deleted successfully</p>`;
@@ -318,7 +321,7 @@ document.getElementById('searchBtnPwd').addEventListener('click', async () => {
         }
         const res = await fetch(`/change_password/${id}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' ,'X-CSRFToken': csrfToken},
           body: JSON.stringify({ new_password: newPwd })
         });
         const dataRes = await res.json();

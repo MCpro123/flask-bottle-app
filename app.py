@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 import requests
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
+from flask_wtf.csrf import CSRFProtect,generate_csrf
+
 
 
 app = Flask(__name__)
@@ -20,6 +22,8 @@ app.config.update(
 
 # Enable built-in Flask XSS protection via Jinja2 autoescaping
 app.jinja_env.autoescape = True
+
+csrf = CSRFProtect(app)
 
 # # PostgreSQL connection
 # def get_db_connection():
@@ -57,6 +61,7 @@ def init_db():
             id SERIAL PRIMARY KEY,
             name VARCHAR(100) NOT NULL,
             bottles INTEGER DEFAULT 0,
+            phone VARCHAR(100) NOT NULL,
             latitude DOUBLE PRECISION,
             longitude DOUBLE PRECISION
         )
@@ -70,6 +75,7 @@ def init_db():
             latitude DOUBLE PRECISION,
             longitude DOUBLE PRECISION,
             bottles INTEGER,
+            borrowed_bottles INTEGER,
             returned_bottles INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         )
@@ -145,7 +151,7 @@ def cached_tile(z, x, y):
 @app.route('/employee')
 def employee_page():
     if session.get('loggedin') and not session.get('is_admin'):
-        return render_template('employee.html', employee_id=session['employee_id'])
+        return render_template('employee.html', employee_id=session['employee_id'],csrf_token=generate_csrf())
     return redirect(url_for('login'))
 
 # Admin dashboard with map + employee management
@@ -527,10 +533,11 @@ def change_password(emp_id):
 
     data = request.get_json()
     new_password = data.get('new_password')
-
+    hashed = generate_password_hash(new_password)
+    
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("UPDATE employees SET password = %s WHERE id = %s", (new_password, emp_id))
+    cur.execute("UPDATE employees SET password=%s WHERE id=%s", (hashed, emp_id))
     conn.commit()
     cur.close()
     conn.close()
