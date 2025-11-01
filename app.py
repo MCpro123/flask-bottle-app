@@ -92,7 +92,9 @@ def init_db():
     # create default admin (update to hashed password)
     cur.execute("SELECT * FROM employees WHERE name='Admin'")
     if not cur.fetchone():
-        hashed = generate_password_hash("admin123")   # use a secure default only in dev
+        password = "admin123"
+        hashed_client = hashlib.sha256(password.encode()).hexdigest()
+        hashed = generate_password_hash(hashed_client)   # use a secure default only in dev
         cur.execute("INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s)",
                     ("Admin", hashed, True))
     
@@ -302,8 +304,8 @@ def add_employee():
     cur = conn.cursor()
     try:
         # inside add_employee route, replace insertion:
-        hashed_client = hashlib.sha256(password.encode()).hexdigest()
-        db_hash = generate_password_hash(hashed_client)
+        
+        db_hash = generate_password_hash(password)
         
         cur.execute(
             "INSERT INTO employees (name, password, is_admin) VALUES (%s, %s, %s) RETURNING id",
