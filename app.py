@@ -444,7 +444,15 @@ def get_employee_markers():
 @app.route('/export_bottle_records')
 def export_bottle_records():
     api_key = request.headers.get('X-API-KEY')
-    if api_key != "my_secret_key_123":   # choose your own strong key
+    
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('SELECT * FROM employees WHERE id=%s AND is_active=TRUE', (1,))
+    account = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if account and check_password_hash(account['password'], api_key):
         return jsonify({'status': 'unauthorized'}), 403
     conn = get_db_connection()
     cur = conn.cursor()

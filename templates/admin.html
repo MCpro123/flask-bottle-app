@@ -324,13 +324,13 @@ document.getElementById('searchBtnPwd').addEventListener('click', async () => {
           alert('Enter new password');
           return;
         }
-        // Hash password before sending
-        const hashedPwd = CryptoJS.SHA256(newPwd).toString();
+        
+        
 
         const res = await fetch(`/change_password/${id}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-          body: JSON.stringify({ new_password: hashedPwd })
+          body: JSON.stringify({ new_password: newPwd })
         });
         const dataRes = await res.json();
         if (dataRes.status === 'success') {

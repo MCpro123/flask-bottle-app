@@ -168,16 +168,7 @@
       toggleButton.innerHTML = isHidden ? eyeSlashIcon : eyeIcon;
     });
 
-    const form = document.querySelector("form");
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      
-      const passwordInput = document.getElementById("password");
-      const hashed = CryptoJS.SHA256(passwordInput.value).toString();
-      passwordInput.value = hashed;
-
-      form.submit();
-    });
+  
   </script>
 </body>
 </html>
