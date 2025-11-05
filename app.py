@@ -443,18 +443,20 @@ def get_employee_markers():
 @app.route('/export_bottle_records')
 def export_bottle_records():
     api_key = request.headers.get('X-API-KEY')
-    
+    if not api_key:
+        return jsonify({'status': 'unauthorized', 'message': 'Missing API key'}), 403
+
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    
     cur.execute('SELECT * FROM employees WHERE id=%s AND is_active=TRUE', (1,))
     account = cur.fetchone()
-    cur.close()
-    conn.close()
+    
+    if not account or not check_password_hash(account['password'], api_key):
+        cur.close()
+        conn.close()
+        return jsonify({'status': 'unauthorized', 'message': 'Invalid API key'}), 403
 
-    if account and check_password_hash(account['password'], api_key):
-        return jsonify({'status': 'unauthorized'}), 403
-    conn = get_db_connection()
-    cur = conn.cursor()
     cur.execute("""
         SELECT 
             b.id AS record_id,
@@ -470,8 +472,10 @@ def export_bottle_records():
         JOIN employees e ON b.employee_id = e.id
         ORDER BY b.created_at DESC;
     """)
+    
     rows = cur.fetchall()
     columns = [desc[0] for desc in cur.description]
+    
     cur.close()
     conn.close()
     

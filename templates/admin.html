@@ -196,9 +196,6 @@ const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute
 document.getElementById('addEmployeeForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const formData = new FormData(e.target);
-  const password = formData.get('password');
-  const hashedPassword = CryptoJS.SHA256(password).toString();
-  formData.set('password', hashedPassword);
   
   const res = await fetch('/add_employee', { method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: formData });
   const result = await res.json();
