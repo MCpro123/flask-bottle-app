@@ -139,22 +139,25 @@ TILE_CACHE_DIR = "tile_cache"
 
 @app.route('/tiles/<int:z>/<int:x>/<int:y>.png')
 def cached_tile(z, x, y):
-    os.makedirs(f"{TILE_CACHE_DIR}/{z}/{x}", exist_ok=True)
-    tile_path = f"{TILE_CACHE_DIR}/{z}/{x}/{y}.png"
+    tile_dir = os.path.join(TILE_CACHE_DIR, str(z), str(x))
+    os.makedirs(tile_dir, exist_ok=True)
+    tile_path = os.path.join(tile_dir, f"{y}.png")
 
-    # If tile exists locally, serve it
     if os.path.exists(tile_path):
         return send_file(tile_path, mimetype='image/png', cache_timeout=3600*24*30)
 
-    # Otherwise download and cache
+    # Download tile with error handling
     url = f"https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    r = requests.get(url, timeout=10)
-    if r.status_code == 200:
-        with open(tile_path, 'wb') as f:
-            f.write(r.content)
-        return send_file(tile_path, mimetype='image/png', cache_timeout=3600*24*30)
-    else:
-        return "Tile not found", 404
+    try:
+        r = requests.get(url, timeout=10)
+        if r.status_code == 200:
+            with open(tile_path, 'wb') as f:
+                f.write(r.content)
+            return send_file(tile_path, mimetype='image/png', cache_timeout=3600*24*30)
+        else:
+            return "Tile not found", 404
+    except requests.RequestException:
+        return "Error fetching tile", 500
 
 # Employee dashboard
 @app.route('/employee')

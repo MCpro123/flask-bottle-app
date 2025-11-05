@@ -164,8 +164,12 @@
     const radius = 5;
     
     const map = L.map('map').setView([lat, lon], 17);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);
-
+    //L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 22 }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    subdomains: ['a','b','c'],
+    maxZoom: 20
+    }).addTo(map);
     
     const currentIcon = L.icon({
       iconUrl: 'https://cdn-icons-png.flaticon.com/512/252/252025.png',
