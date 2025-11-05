@@ -443,8 +443,9 @@ def get_employee_markers():
 
 @app.route('/export_bottle_records')
 def export_bottle_records():
-    if not require_admin():
-        return jsonify({'status':'unauthorized'}), 403
+    api_key = request.headers.get('X-API-KEY')
+    if api_key != "my_secret_key_123":   # choose your own strong key
+        return jsonify({'status': 'unauthorized'}), 403
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
@@ -543,9 +544,6 @@ def change_password(emp_id):
     # only admin or the owner
     if not (session.get('is_admin') or session.get('employee_id') == emp_id):
         return jsonify({'status': 'forbidden'}), 403
-    
-    
-
 
     data = request.get_json()
     new_password = data.get('new_password')
@@ -559,6 +557,42 @@ def change_password(emp_id):
     conn.close()
 
     return jsonify({'status': 'success'})
+
+
+@app.route('/get_overreturn_customers')
+def get_overreturn_customers():
+    if not session.get('loggedin') or not session.get('is_admin'):
+        return jsonify([])
+
+    today = datetime.now().date()
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("""
+        SELECT 
+            c.id AS customer_id,
+            c.name AS customer_name,
+            c.phone AS customer_phone,
+            COALESCE(SUM(b.returned_bottles), 0) AS total_returned,
+            COALESCE(SUM(b.borrowed_bottles), 0) AS total_borrowed,
+            (SUM(b.returned_bottles) - SUM(b.borrowed_bottles)) AS difference
+        FROM bottle_records b
+        JOIN customers c ON b.customer_id = c.id
+        WHERE DATE(b.created_at) = %s
+        GROUP BY c.id, c.name, c.phone
+        HAVING SUM(b.returned_bottles) > SUM(b.borrowed_bottles)
+        ORDER BY (SUM(b.returned_bottles) - SUM(b.borrowed_bottles)) DESC
+    """, (today,))
+    
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # if no rows, return empty list
+    if not rows:
+        return jsonify([])
+
+    return jsonify([dict(r) for r in rows])
 
 # Logout
 @app.route('/logout')

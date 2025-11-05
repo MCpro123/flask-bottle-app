@@ -129,6 +129,23 @@
     <canvas id="availableChart"></canvas>
   </div>
 
+  <div class="card mt-6 p-4">
+  <h3 class="text-lg font-semibold mb-2">Customers Who Returned More Than Borrowed (Today)</h3>
+  <table id="overreturnTable" class="min-w-full border text-sm text-left">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-3 py-2 border">Customer ID</th>
+        <th class="px-3 py-2 border">Name</th>
+        <th class="px-3 py-2 border">Phone</th>
+        <th class="px-3 py-2 border">Returned</th>
+        <th class="px-3 py-2 border">Borrowed</th>
+        <th class="px-3 py-2 border">Difference</th>
+
+      </tr>
+    </thead>
+    <tbody id="overreturnBody"></tbody>
+  </table>
+  </div>
  
 
   <button onclick="window.location.href='/admin'">⬅ Back to Dashboard</button>
@@ -220,6 +237,7 @@
       const res = await fetch('/get_returns_ratio');
       const data = await res.json();
       const available = parseInt(document.getElementById('availableInput').value || 0);
+      const left = data.delivered - available;
 
       const ctx = document.getElementById('availableChart').getContext('2d');
       if (availableChartInstance) availableChartInstance.destroy();
@@ -228,20 +246,44 @@
         data: {
           labels: ['Delivered', 'Available'],
           datasets: [{
-            data: [data.delivered,available],
+            data: [data.delivered,left],
             backgroundColor: ['#007bffcc', '#ffc107cc']
           }]
         },
         options: { responsive: true }
       });
     }
+  async function loadOverReturnCustomers() {
+  const res = await fetch('/get_overreturn_customers');
+  const data = await res.json();
+  const tbody = document.getElementById('overreturnBody');
+  tbody.innerHTML = '';
+
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-gray-500">No over-return customers today.</td></tr>`;
+    return;
+  }
+
+  data.forEach(c => {
+    tbody.innerHTML += `
+      <tr>
+        <td class="border px-3 py-2">${c.customer_id}</td>
+        <td class="border px-3 py-2">${c.customer_name}</td>
+        <td class="border px-3 py-2">${c.customer_phone}</td>
+        <td class="border px-3 py-2">${c.total_returned}</td>
+        <td class="border px-3 py-2">${c.total_borrowed}</td>
+        <td class="border px-3 py-2">${c.difference}</td>
+      </tr>
+    `;
+  });
+}
 
     // Load today's data by default
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('datePicker').value = today;
     loadHistogram(today);
     loadDailyTotals();
-   
+    loadOverReturnCustomers();
     loadReturns();
     loadAvailable();
 
