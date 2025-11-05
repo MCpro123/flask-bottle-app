@@ -125,7 +125,7 @@
 
   <div class="insight-card">
     <h2>Delivered vs Available Bottles</h2>
-    <input type="number" id="availableInput" placeholder="Total available bottles" min="0">
+    <input type="number" id="availableInput" placeholder="Total available bottles" min="0" style="display: block;margin: auto;padding: 8px 12px;font-size: 1rem;border: 1px solid #ccc;border-radius: 6px;">
     <canvas id="availableChart"></canvas>
   </div>
 
@@ -237,7 +237,7 @@
       const res = await fetch('/get_returns_ratio');
       const data = await res.json();
       const available = parseInt(document.getElementById('availableInput').value || 0);
-      const left = data.delivered - available;
+      const left = available - data.delivered + data.returned;
 
       const ctx = document.getElementById('availableChart').getContext('2d');
       if (availableChartInstance) availableChartInstance.destroy();
